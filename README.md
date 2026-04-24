@@ -49,7 +49,7 @@ docker compose up --build
 3. Open the app:
 
 - Frontend: [http://localhost:8080](http://localhost:8080)
-- Backend health: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+- Backend health: [http://localhost:5001/api/health](http://localhost:5001/api/health)
 
 The backend will create PostgreSQL tables automatically. If model artifacts are missing, it will train a bootstrap model on first start and save the files under `backend/model/`.
 
