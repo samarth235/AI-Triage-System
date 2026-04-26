@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, TrendingUp, LogOut, Edit3, ShieldAlert, Info } from "lucide-react";
+import { TriangleAlert as AlertTriangle, TrendingUp, LogOut, CreditCard as Edit3, ShieldAlert, Info } from "lucide-react";
 
 const URGENCY_LABELS = ["Immediate", "Urgent", "Less Urgent", "Non-Urgent"];
 

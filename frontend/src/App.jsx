@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Truck, AlertTriangle, Bed, ClipboardList, FileText, Radio } from "lucide-react";
+import { Activity, Truck, TriangleAlert as AlertTriangle, Bed, ClipboardList, FileText, Radio } from "lucide-react";
 import PatientForm from "./components/PatientForm";
 import PatientQueue from "./components/PatientQueue";
 import DetailPanel from "./components/DetailPanel";

@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { FileText, Download, ShieldAlert, AlertTriangle } from "lucide-react";
+import { FileText, Download, ShieldAlert, TriangleAlert as AlertTriangle } from "lucide-react";
 
 export default function ShiftHandover({ API, queue }) {
   const [form, setForm] = useState({ nurse: "", period: "Day Shift (08:00–20:00)", notes: "" });

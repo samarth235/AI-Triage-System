@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Plus, Zap, ShieldAlert } from "lucide-react";
+import { TriangleAlert as AlertTriangle, Plus, Zap, ShieldAlert } from "lucide-react";
 
 const BLANK = {
   name: "", age: 30, heart_rate: 90, systolic_bp: 110, diastolic_bp: 75,

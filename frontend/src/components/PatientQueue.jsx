@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Clock, AlertCircle } from "lucide-react";
+import { Users, Clock, CircleAlert as AlertCircle } from "lucide-react";
 
 const GLOW_CLASSES = ["glow-red", "glow-orange", "glow-yellow", "glow-green"];
 const URGENCY_DOT = ["bg-red-400", "bg-orange-400", "bg-yellow-400", "bg-green-400"];

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { ClipboardList, RefreshCw, ShieldAlert, Edit3, TrendingUp } from "lucide-react";
+import { ClipboardList, RefreshCw, ShieldAlert, CreditCard as Edit3, TrendingUp } from "lucide-react";
 
 const ACTION_CONFIG = {
   triage:       { label: "AI Triage",     color: "#60a5fa", bg: "rgba(59,130,246,0.1)",   border: "rgba(59,130,246,0.25)" },
