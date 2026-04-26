@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { AlertTriangle, Plus, Siren } from "lucide-react";
 
 const BLANK = { name:"", age:30, heart_rate:90, systolic_bp:110, diastolic_bp:75, temperature:37.5, oxygen_saturation:95, respiratory_rate:18, pain_score:5, conscious_level:1, arrival_mode:1, chief_complaint:2 };
 
@@ -26,30 +27,24 @@ export default function MassCasualty({ API, onDone }) {
     setLoading(false);
   };
 
-  const PILL_COLORS = [
-    { bg: "var(--red-bg)", color: "#fca5a5", border: "var(--red-border)" },
-    { bg: "var(--orange-bg)", color: "#fdba74", border: "var(--orange-border)" },
-    { bg: "var(--yellow-bg)", color: "#fde047", border: "var(--yellow-border)" },
-    { bg: "var(--green-bg)", color: "#86efac", border: "var(--green-border)" },
-  ];
-
   return (
     <div>
-      <div style={{ background: "var(--red-bg)", border: "1px solid var(--red-border)", borderRadius: "var(--radius)", padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 20 }}>🚨</span>
+      <div style={{ background: "rgba(239,68,68,.14)", border: "1px solid rgba(239,68,68,.45)", borderRadius: "var(--radius)", padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+        <Siren size={18} strokeWidth={1.5} />
         <div>
           <div style={{ fontWeight: 600, color: "#fca5a5", marginBottom: 2 }}>Mass Casualty Incident Mode</div>
           <div style={{ fontSize: 12, color: "var(--text2)" }}>Process multiple patients simultaneously using START triage protocol. All patients added to queue instantly.</div>
         </div>
         <button className="btn btn-red" style={{ marginLeft: "auto", whiteSpace: "nowrap" }} onClick={handleSubmit} disabled={loading}>
-          {loading ? "Processing..." : `⚡ Triage All ${patients.length} Patients`}
+          <AlertTriangle size={18} strokeWidth={1.5} />
+          {loading ? "Processing..." : `Triage All ${patients.length} Patients`}
         </button>
       </div>
 
       {!results ? (
         <>
           <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-            <button className="btn" onClick={addPatient}>+ Add Victim</button>
+            <button className="btn" onClick={addPatient}><Plus size={18} strokeWidth={1.5} />Add Victim</button>
             <span style={{ fontSize: 12, color: "var(--text2)", display: "flex", alignItems: "center" }}>{patients.length} patient{patients.length !== 1 ? "s" : ""} queued for triage</span>
           </div>
 

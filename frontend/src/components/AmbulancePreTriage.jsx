@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { Ambulance, ClipboardCheck, ShieldAlert } from "lucide-react";
 
 const DEFAULTS = {
   name:"", age:40, heart_rate:90, systolic_bp:110, diastolic_bp:75,
@@ -35,11 +36,11 @@ export default function AmbulancePreTriage({ API }) {
     <div className="grid-2-narrow">
       <div className="card">
         <div className="card-head">
-          <span className="card-title">Ambulance Pre-Triage</span>
+          <span className="inline-flex items-center gap-2 card-title"><Ambulance size={18} strokeWidth={1.5} />Ambulance Pre-Triage</span>
           <span className="card-badge">Field Submission</span>
         </div>
         <div className="card-body">
-          <div style={{ background: "var(--orange-bg)", border: "1px solid var(--orange-border)", borderRadius: "var(--radius-sm)", padding: "8px 10px", fontSize: 11, color: "#fdba74", marginBottom: 12 }}>
+          <div style={{ background: "rgba(16,185,129,.12)", border: "1px solid rgba(16,185,129,.3)", borderRadius: "var(--radius-sm)", padding: "8px 10px", fontSize: 11, color: "rgba(110,231,183,.95)", marginBottom: 12 }}>
             Paramedics submit vitals from field. ER team gets alert before patient arrives.
           </div>
 
@@ -82,8 +83,8 @@ export default function AmbulancePreTriage({ API }) {
             <label className="form-label">Paramedic Notes</label>
             <textarea className="form-textarea" value={form.paramedic_notes} onChange={e => set("paramedic_notes", e.target.value)} placeholder="Scene description, mechanism of injury, interventions performed..." />
           </div>
-          <button className="btn btn-orange btn-full" onClick={handleSubmit} disabled={loading} style={{ padding: 11, fontSize: 14 }}>
-            {loading ? "Sending..." : "🚑 Send Pre-Triage Alert to ER"}
+          <button className="btn btn-primary btn-full" onClick={handleSubmit} disabled={loading} style={{ padding: 11, fontSize: 14 }}>
+            {loading ? "Sending..." : "Send Pre-Triage Alert to ER"}
           </button>
         </div>
       </div>
@@ -92,7 +93,7 @@ export default function AmbulancePreTriage({ API }) {
         {result ? (
           <div className="card">
             <div className="card-head">
-              <span className="card-title">Pre-Alert Sent</span>
+              <span className="inline-flex items-center gap-2 card-title"><ClipboardCheck size={18} strokeWidth={1.5} />Pre-Alert Sent</span>
               <span className="card-badge">{result.id}</span>
             </div>
             <div className="card-body">
@@ -111,7 +112,7 @@ export default function AmbulancePreTriage({ API }) {
               </div>
 
               {result.sepsis_flag && (
-                <div className="sepsis-flag">SEPSIS PROTOCOL — Prepare IV access, blood culture trays, antibiotics</div>
+                <div className="sepsis-flag inline-flex items-center gap-2"><ShieldAlert size={18} strokeWidth={1.5} />SEPSIS PROTOCOL - Prepare IV access, blood culture trays, antibiotics</div>
               )}
 
               <div className="sub-head">Patient Vitals (Field)</div>

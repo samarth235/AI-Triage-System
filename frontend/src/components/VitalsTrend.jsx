@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Activity, AlertTriangle } from "lucide-react";
 
 export default function VitalsTrend({ patient, API }) {
   const [history, setHistory] = useState([]);
@@ -46,22 +47,22 @@ export default function VitalsTrend({ patient, API }) {
   return (
     <div>
       {trend.deteriorating && (
-        <div className="sepsis-flag" style={{ marginBottom: 14 }}>
-          ⚠ DETERIORATING — {trend.signals?.join(", ")}
+        <div className="sepsis-flag inline-flex items-center gap-2" style={{ marginBottom: 14 }}>
+          <AlertTriangle size={18} strokeWidth={1.5} /> DETERIORATING - {trend.signals?.join(", ")}
         </div>
       )}
 
       {history.length >= 2 ? (
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={history} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="time" tick={{ fill: "#9ca3af", fontSize: 10 }} />
-            <YAxis tick={{ fill: "#9ca3af", fontSize: 10 }} />
-            <Tooltip contentStyle={{ background: "#1f2937", border: "1px solid #374151", color: "#f9fafb", fontSize: 12 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#2b2b2b" />
+            <XAxis dataKey="time" tick={{ fill: "#71717a", fontSize: 10 }} />
+            <YAxis tick={{ fill: "#71717a", fontSize: 10 }} />
+            <Tooltip contentStyle={{ background: "#111111", border: "1px solid rgba(255,255,255,.08)", color: "#fafafa", fontSize: 12 }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line type="monotone" dataKey="heart_rate" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name="HR (bpm)" />
-            <Line type="monotone" dataKey="oxygen_saturation" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} name="SpO2 (%)" />
-            <Line type="monotone" dataKey="systolic_bp" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="BP Sys" />
+            <Line type="monotone" dataKey="oxygen_saturation" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="SpO2 (%)" />
+            <Line type="monotone" dataKey="systolic_bp" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} name="BP Sys" />
           </LineChart>
         </ResponsiveContainer>
       ) : (
@@ -87,6 +88,7 @@ export default function VitalsTrend({ patient, API }) {
           </div>
         </div>
         <button className="btn btn-blue btn-full btn-sm" onClick={addVitals} disabled={loading}>
+          <Activity size={18} strokeWidth={1.5} />
           {loading ? "Updating..." : "Log Vitals Reading"}
         </button>
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { Activity, RefreshCw, ShieldCheck } from "lucide-react";
 
 const ACTION_CONFIG = {
   triage:       { label: "AI Triage",      color: "var(--blue)",   bg: "var(--blue-bg)" },
@@ -58,12 +59,12 @@ export default function AuditLog({ API }) {
 
       <div className="card">
         <div className="card-head">
-          <span className="card-title">Audit Trail</span>
-          <button className="btn btn-sm" onClick={fetchLog}>Refresh</button>
+          <span className="inline-flex items-center gap-2 card-title"><Activity size={18} strokeWidth={1.5} />Audit Trail</span>
+          <button className="btn btn-sm" onClick={fetchLog}><RefreshCw size={18} strokeWidth={1.5} />Refresh</button>
         </div>
 
         {/* Filters */}
-        <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,.08)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <input
             className="form-input"
             style={{ maxWidth: 220 }}
@@ -71,7 +72,7 @@ export default function AuditLog({ API }) {
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          <div className="tabs" style={{ marginLeft: 4 }}>
+          <div style={{ marginLeft: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
             {[
               { id: "all",          label: "All" },
               { id: "triage",       label: "Triage" },
@@ -81,7 +82,7 @@ export default function AuditLog({ API }) {
             ].map(f => (
               <button
                 key={f.id}
-                className={`tab ${filter === f.id ? "active" : ""}`}
+                className={`btn btn-sm ${filter === f.id ? "btn-primary" : ""}`}
                 onClick={() => setFilter(f.id)}
               >
                 {f.label}
@@ -152,7 +153,7 @@ export default function AuditLog({ API }) {
       {/* Bias analysis */}
       <div className="card" style={{ marginTop: 14 }}>
         <div className="card-head">
-          <span className="card-title">Override Pattern Analysis</span>
+          <span className="inline-flex items-center gap-2 card-title"><ShieldCheck size={18} strokeWidth={1.5} />Override Pattern Analysis</span>
           <span className="card-badge">Bias Detection</span>
         </div>
         <div className="card-body">

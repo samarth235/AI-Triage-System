@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { ClipboardList, Download, FileText, Handshake } from "lucide-react";
 
 export default function ShiftHandover({ API, queue }) {
   const [form, setForm] = useState({
@@ -47,11 +48,11 @@ export default function ShiftHandover({ API, queue }) {
       {/* Form */}
       <div className="card">
         <div className="card-head">
-          <span className="card-title">Generate Handover Report</span>
+          <span className="inline-flex items-center gap-2 card-title"><Handshake size={18} strokeWidth={1.5} />Generate Handover Report</span>
           <span className="card-badge">PDF</span>
         </div>
         <div className="card-body">
-          <div style={{ background: "var(--blue-bg)", border: "1px solid var(--blue-border)", borderRadius: "var(--radius-sm)", padding: "8px 11px", fontSize: 11, color: "#93c5fd", marginBottom: 14 }}>
+          <div style={{ background: "rgba(16,185,129,.12)", border: "1px solid rgba(16,185,129,.3)", borderRadius: "var(--radius-sm)", padding: "8px 11px", fontSize: 11, color: "rgba(110,231,183,.95)", marginBottom: 14 }}>
             Generates a complete PDF shift handover report including all patients, statistics, sepsis flags, and clinical notes for the incoming team.
           </div>
 
@@ -88,7 +89,8 @@ export default function ShiftHandover({ API, queue }) {
             disabled={loading}
             style={{ padding: 12, fontSize: 14 }}
           >
-            {loading ? "Generating PDF..." : "📄 Generate & Download Handover PDF"}
+            <Download size={18} strokeWidth={1.5} />
+            {loading ? "Generating PDF..." : "Generate & Download Handover PDF"}
           </button>
 
           {generated && (
@@ -105,7 +107,7 @@ export default function ShiftHandover({ API, queue }) {
         {/* Queue snapshot */}
         <div className="card">
           <div className="card-head">
-            <span className="card-title">Current Queue Snapshot</span>
+            <span className="inline-flex items-center gap-2 card-title"><ClipboardList size={18} strokeWidth={1.5} />Current Queue Snapshot</span>
             <span className="card-badge">{queue.length} patients</span>
           </div>
           <div className="card-body">
@@ -146,7 +148,7 @@ export default function ShiftHandover({ API, queue }) {
         {queue.length > 0 && (
           <div className="card">
             <div className="card-head">
-              <span className="card-title">Patients Requiring Handover</span>
+              <span className="inline-flex items-center gap-2 card-title"><FileText size={18} strokeWidth={1.5} />Patients Requiring Handover</span>
             </div>
             <div style={{ maxHeight: 300, overflowY: "auto" }}>
               {[...queue].sort((a, b) => a.urgency_level - b.urgency_level).map(p => (

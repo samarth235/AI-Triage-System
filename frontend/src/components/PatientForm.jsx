@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { ClipboardPlus, Sparkles } from "lucide-react";
 
 const COMPLAINTS = [
   "Chest Pain","Breathlessness","Trauma / Injury","Fever",
@@ -59,7 +60,7 @@ export default function PatientForm({ API, onPatientAdded }) {
   return (
     <div className="card">
       <div className="card-head">
-        <span className="card-title">Register Patient</span>
+        <span className="inline-flex items-center gap-2 card-title"><ClipboardPlus size={18} strokeWidth={1.5} />Register Patient</span>
         <span className={`age-badge age-${ageGroup}`}>{ageGroup.toUpperCase()}</span>
       </div>
       <div className="card-body" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
@@ -81,7 +82,8 @@ export default function PatientForm({ API, onPatientAdded }) {
           />
           {nlpLoading && <div style={{ fontSize: 10, color: "var(--text2)", marginTop: 4 }}>Parsing...</div>}
           {nlpResult && (
-            <div className="nlp-suggestion">
+            <div className="nlp-suggestion inline-flex items-center gap-2">
+              <Sparkles size={18} strokeWidth={1.5} />
               Detected: <strong>{nlpResult.category_label}</strong> ({nlpResult.confidence}% confidence)
               {nlpResult.urgency_hint === "high" && <span style={{ color: "#fca5a5", marginLeft: 8 }}>⚠ HIGH URGENCY LANGUAGE</span>}
             </div>
@@ -109,12 +111,12 @@ export default function PatientForm({ API, onPatientAdded }) {
         </div>
 
         {ageGroup === "pediatric" && (
-          <div style={{ background: "var(--blue-bg)", border: "1px solid var(--blue-border)", borderRadius: "var(--radius-sm)", padding: "8px 10px", fontSize: 11, color: "#93c5fd", marginBottom: 10 }}>
+          <div style={{ background: "rgba(16,185,129,.14)", border: "1px solid rgba(16,185,129,.35)", borderRadius: "var(--radius-sm)", padding: "8px 10px", fontSize: 11, color: "rgba(110,231,183,.95)", marginBottom: 10 }}>
             Pediatric Mode: HR normal range 70–120 bpm for child. Pain assessment uses FLACC scale.
           </div>
         )}
         {ageGroup === "geriatric" && (
-          <div style={{ background: "var(--purple-bg)", border: "1px solid var(--purple)", borderRadius: "var(--radius-sm)", padding: "8px 10px", fontSize: 11, color: "#d8b4fe", marginBottom: 10 }}>
+          <div style={{ background: "rgba(16,185,129,.12)", border: "1px solid rgba(16,185,129,.3)", borderRadius: "var(--radius-sm)", padding: "8px 10px", fontSize: 11, color: "rgba(110,231,183,.9)", marginBottom: 10 }}>
             Geriatric Mode: Lower pain threshold. BP &lt;110 systolic flagged. Atypical presentation awareness active.
           </div>
         )}
@@ -155,8 +157,8 @@ export default function PatientForm({ API, onPatientAdded }) {
           </div>
         </div>
 
-        <button className="btn btn-red btn-full" onClick={handleSubmit} disabled={loading} style={{ marginTop: 6, padding: "11px", fontSize: 14 }}>
-          {loading ? "Triaging..." : "⚡ Triage Patient"}
+        <button className="btn btn-primary btn-full" onClick={handleSubmit} disabled={loading} style={{ marginTop: 6, padding: "11px", fontSize: 14 }}>
+          {loading ? "Triaging..." : "Triage Patient"}
         </button>
       </div>
     </div>
