@@ -2,29 +2,23 @@
   "name": "ai-triage-frontend",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
     "axios": "^1.6.0",
     "socket.io-client": "^4.7.2",
     "recharts": "^2.8.0",
     "react-hot-toast": "^2.4.1",
     "lucide-react": "^0.383.0",
-    "date-fns": "^2.30.0",
-    "framer-motion": "^11.0.0",
-    "clsx": "^2.1.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.3",
-    "vite": "^5.2.0"
+    "date-fns": "^2.30.0"
   },
   "scripts": {
-    "start": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "browserslist": {
+    "production": [">0.2%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version"]
   }
 }
