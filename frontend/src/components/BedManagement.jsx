@@ -1,26 +1,19 @@
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { motion } from "framer-motion";
 
 const BED_CONFIG = {
-  icu:         { label: "ICU",         color: "var(--red)",    icon: "🔴" },
-  emergency:   { label: "Emergency",   color: "var(--orange)", icon: "🟠" },
-  general:     { label: "General",     color: "var(--blue)",   icon: "🔵" },
-  observation: { label: "Observation", color: "var(--green)",  icon: "🟢" },
+  icu:         { label: "ICU",         accent: "#ef4444", dim: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.3)"  },
+  emergency:   { label: "Emergency",   accent: "#f97316", dim: "rgba(249,115,22,0.12)", border: "rgba(249,115,22,0.3)" },
+  general:     { label: "General",     accent: "#3b82f6", dim: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)" },
+  observation: { label: "Observation", accent: "#22c55e", dim: "rgba(34,197,94,0.1)",   border: "rgba(34,197,94,0.28)" },
 };
 
-function BedBar({ occupied, total, color }) {
-  const pct = total > 0 ? (occupied / total) * 100 : 0;
-  const fillColor = pct >= 90 ? "var(--red)" : pct >= 70 ? "var(--orange)" : color;
-  return (
-    <div>
-      <div className="bed-bar-track">
-        <div className="bed-bar-fill" style={{ width: `${pct}%`, background: fillColor }} />
-      </div>
-      <div className="bed-count">{occupied}/{total} occupied ({Math.round(pct)}%)</div>
-    </div>
-  );
-}
+const cardVariants = {
+  hidden:  { opacity: 0, y: 16 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.25 } }),
+};
 
 export default function BedManagement({ beds, API }) {
   const [loading, setLoading] = useState({});
@@ -29,7 +22,7 @@ export default function BedManagement({ beds, API }) {
     setLoading(p => ({ ...p, [type + action]: true }));
     try {
       await axios.post(`${API}/api/beds/update`, { type, action });
-      toast.success(`${BED_CONFIG[type]?.label} bed ${action === "occupy" ? "marked occupied" : "freed"}`);
+      toast.success(`${BED_CONFIG[type]?.label} bed ${action === "occupy" ? "admitted" : "freed"}`);
     } catch { toast.error("Backend not connected"); }
     setLoading(p => ({ ...p, [type + action]: false }));
   };
@@ -38,112 +31,156 @@ export default function BedManagement({ beds, API }) {
   const totalOccupied = Object.values(beds).reduce((s, b) => s + (b.occupied || 0), 0);
   const totalFree     = totalBeds - totalOccupied;
   const overallPct    = totalBeds > 0 ? Math.round((totalOccupied / totalBeds) * 100) : 0;
+  const overallColor  = overallPct >= 90 ? "#f87171" : overallPct >= 70 ? "#fb923c" : "#4ade80";
 
   return (
     <div>
-      {/* Summary bar */}
-      <div className="stats-row" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
-        <div className="stat"><div className="stat-lbl">Total Beds</div><div className="stat-val blue">{totalBeds}</div><div className="stat-sub">Across all wards</div></div>
-        <div className="stat"><div className="stat-lbl">Occupied</div><div className="stat-val red">{totalOccupied}</div><div className="stat-sub">{overallPct}% capacity</div></div>
-        <div className="stat"><div className="stat-lbl">Available</div><div className="stat-val green">{totalFree}</div><div className="stat-sub">Ready for admission</div></div>
-        <div className="stat">
-          <div className="stat-lbl">Overall Load</div>
-          <div className="stat-val" style={{ color: overallPct >= 90 ? "var(--red)" : overallPct >= 70 ? "var(--orange)" : "var(--green)" }}>
-            {overallPct}%
-          </div>
-          <div className="stat-sub">{overallPct >= 90 ? "⚠ Critical" : overallPct >= 70 ? "High load" : "Normal"}</div>
-        </div>
+      {/* Summary stats */}
+      <div className="grid grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Total Beds",   value: totalBeds,     sub: "All wards",       cls: "stat-blue"   },
+          { label: "Occupied",     value: totalOccupied, sub: `${overallPct}% capacity`, cls: "stat-red" },
+          { label: "Available",    value: totalFree,     sub: "Ready now",       cls: "stat-green"  },
+          { label: "Overall Load", value: `${overallPct}%`, sub: overallPct >= 90 ? "Critical" : overallPct >= 70 ? "High load" : "Normal", cls: overallPct >= 90 ? "stat-red" : overallPct >= 70 ? "stat-orange" : "stat-green" },
+        ].map((s, i) => (
+          <motion.div key={s.label} custom={i} variants={cardVariants} initial="hidden" animate="visible" className="glass-card p-4">
+            <div className="field-label mb-2">{s.label}</div>
+            <div className={`text-3xl font-bold font-mono leading-none mb-1 ${s.cls}`}>{s.value}</div>
+            <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.32)" }}>{s.sub}</div>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Bed Cards */}
-      <div className="grid-2">
-        {Object.entries(BED_CONFIG).map(([type, cfg]) => {
-          const data     = beds[type] || { total: 0, occupied: 0 };
-          const free     = data.total - data.occupied;
-          const pct      = data.total > 0 ? Math.round((data.occupied / data.total) * 100) : 0;
+      {/* Bento grid of ward cards */}
+      <div className="grid grid-cols-2 gap-4">
+        {Object.entries(BED_CONFIG).map(([type, cfg], i) => {
+          const data    = beds[type] || { total: 0, occupied: 0 };
+          const free    = data.total - data.occupied;
+          const pct     = data.total > 0 ? Math.round((data.occupied / data.total) * 100) : 0;
           const critical = pct >= 90;
+          const barColor = pct >= 90 ? "#ef4444" : pct >= 70 ? "#f97316" : cfg.accent;
 
           return (
-            <div key={type} className="card" style={{ borderLeft: `3px solid ${cfg.color}` }}>
-              <div className="card-head">
-                <span className="card-title">{cfg.icon} {cfg.label} Ward</span>
-                <span className="card-badge" style={{ color: critical ? "var(--red)" : "var(--text2)" }}>
-                  {critical ? "⚠ NEAR FULL" : `${free} free`}
-                </span>
+            <motion.div
+              key={type}
+              custom={i}
+              variants={cardVariants}
+              initial="hidden"
+              animate="visible"
+              className="glass-card"
+              style={{
+                border: `1px solid ${critical ? "rgba(239,68,68,0.35)" : cfg.border}`,
+                boxShadow: critical
+                  ? "0 0 24px rgba(239,68,68,0.15), inset 0 1px 0 rgba(239,68,68,0.1)"
+                  : `0 0 16px ${cfg.accent}22`,
+              }}
+            >
+              {/* Card header */}
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ background: cfg.accent, boxShadow: `0 0 6px ${cfg.accent}` }} />
+                  <span className="font-bold text-xs uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.7)", letterSpacing: "0.1em" }}>
+                    {cfg.label}
+                  </span>
+                </div>
+                <div className="font-mono text-xs font-semibold" style={{ color: critical ? "#f87171" : "rgba(255,255,255,0.4)" }}>
+                  {critical ? "NEAR FULL" : `${free} free`}
+                </div>
               </div>
-              <div className="card-body">
+
+              <div className="p-4">
                 {critical && (
-                  <div className="sepsis-flag" style={{ marginBottom: 12, fontSize: 11 }}>
-                    {cfg.label} ward at {pct}% capacity — consider diversion
+                  <div className="alert-sepsis mb-3 text-[11px]">
+                    {cfg.label} at {pct}% capacity — consider diversion
                   </div>
                 )}
 
-                <BedBar occupied={data.occupied} total={data.total} color={cfg.color} />
+                {/* Capacity bar */}
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-mono text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Capacity</span>
+                  <span className="font-mono text-[12px] font-bold" style={{ color: barColor }}>
+                    {data.occupied}/{data.total}
+                  </span>
+                </div>
+                <div className="bed-bar-track">
+                  <motion.div
+                    className="bed-bar-fill"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    style={{ background: `linear-gradient(90deg, ${barColor}88, ${barColor})` }}
+                  />
+                </div>
 
                 {/* Visual bed grid */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, margin: "14px 0" }}>
-                  {Array.from({ length: data.total }).map((_, i) => (
+                <div className="flex flex-wrap gap-1 my-3">
+                  {Array.from({ length: data.total }).map((_, j) => (
                     <div
-                      key={i}
-                      title={i < data.occupied ? "Occupied" : "Available"}
+                      key={j}
+                      title={j < data.occupied ? "Occupied" : "Available"}
                       style={{
-                        width: 22, height: 22,
-                        borderRadius: 4,
-                        background: i < data.occupied ? cfg.color : "var(--bg3)",
-                        border: `1px solid ${i < data.occupied ? cfg.color : "var(--border)"}`,
-                        opacity: i < data.occupied ? 0.9 : 0.4,
+                        width: 18, height: 18, borderRadius: 4,
+                        background: j < data.occupied ? cfg.accent : "rgba(255,255,255,0.05)",
+                        border: `1px solid ${j < data.occupied ? cfg.accent : "rgba(255,255,255,0.08)"}`,
+                        opacity: j < data.occupied ? 0.85 : 0.4,
                         transition: "all 0.2s",
                       }}
                     />
                   ))}
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {/* Stats row */}
+                <div className="flex justify-between text-[11px] font-mono mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
+                  <span>Occupied: <strong style={{ color: cfg.accent }}>{data.occupied}</strong></span>
+                  <span>Free: <strong style={{ color: "#4ade80" }}>{free}</strong></span>
+                  <span>Total: <strong style={{ color: "rgba(255,255,255,0.6)" }}>{data.total}</strong></span>
+                </div>
+
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-2">
                   <button
-                    className="btn btn-red btn-sm"
+                    className="btn btn-danger"
+                    style={{ fontSize: 11 }}
                     disabled={data.occupied >= data.total || loading[type + "occupy"]}
                     onClick={() => update(type, "occupy")}
                   >
                     Admit Patient
                   </button>
                   <button
-                    className="btn btn-green btn-sm"
+                    className="btn btn-success"
+                    style={{ fontSize: 11 }}
                     disabled={data.occupied <= 0 || loading[type + "free"]}
                     onClick={() => update(type, "free")}
                   >
                     Free Bed
                   </button>
                 </div>
-
-                <div style={{ marginTop: 10, fontSize: 11, color: "var(--text2)", display: "flex", justifyContent: "space-between" }}>
-                  <span>Occupied: <strong style={{ color: "var(--text)" }}>{data.occupied}</strong></span>
-                  <span>Available: <strong style={{ color: "var(--green)" }}>{free}</strong></span>
-                  <span>Total: <strong style={{ color: "var(--text)" }}>{data.total}</strong></span>
-                </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
-      {/* Bed-to-triage notice */}
-      <div className="card" style={{ marginTop: 14 }}>
-        <div className="card-head"><span className="card-title">Resource Matching Guide</span></div>
-        <div className="card-body">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
-            {[
-              { level: "Immediate", ward: "ICU / Emergency", color: "var(--red)",    note: "Direct admit, no waiting" },
-              { level: "Urgent",    ward: "Emergency",        color: "var(--orange)", note: "Within 10 min, monitored bed" },
-              { level: "Less Urgent", ward: "General / Obs",  color: "var(--yellow)", note: "Within 60 min, standard bed" },
-              { level: "Non-Urgent",  ward: "Waiting Area",   color: "var(--green)",  note: "No bed needed immediately" },
-            ].map((r, i) => (
-              <div key={i} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: r.color, marginBottom: 4 }}>{r.level}</div>
-                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 4 }}>{r.ward}</div>
-                <div style={{ fontSize: 11, color: "var(--text2)" }}>{r.note}</div>
-              </div>
-            ))}
-          </div>
+      {/* Resource matching guide */}
+      <div className="glass-card mt-4">
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em" }}>
+            Resource Matching Guide
+          </span>
+        </div>
+        <div className="grid grid-cols-4 gap-3 p-4">
+          {[
+            { level: "Immediate",   ward: "ICU / Emergency", color: "#f87171", note: "Direct admit, no waiting" },
+            { level: "Urgent",      ward: "Emergency",        color: "#fb923c", note: "Within 10 min, monitored" },
+            { level: "Less Urgent", ward: "General / Obs",   color: "#facc15", note: "Within 60 min, standard" },
+            { level: "Non-Urgent",  ward: "Waiting Area",    color: "#4ade80", note: "No bed needed immediately" },
+          ].map((r, i) => (
+            <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "10px 12px" }}>
+              <div className="font-mono text-[10px] font-bold mb-1" style={{ color: r.color }}>{r.level}</div>
+              <div className="text-[12px] font-medium mb-1" style={{ color: "rgba(255,255,255,0.65)" }}>{r.ward}</div>
+              <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.32)" }}>{r.note}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
