@@ -45,9 +45,14 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# Use NullPool for SQLite to avoid eventlet threading/lock conflicts
+if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+    from sqlalchemy.pool import NullPool
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"poolclass": NullPool}
+
 cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
 CORS(app, resources={r"/api/*": {"origins": cors_origins}})
-socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode="threading")
 initialize_database(app)
 
 URGENCY_CONFIG = {
