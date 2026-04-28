@@ -25,7 +25,6 @@ from database import (  # noqa: E402
     get_shift_stats,
     initialize_database,
 )
-from model.train_model import ensure_model_artifacts  # noqa: E402
 from utils.nlp_parser import parse_complaint  # noqa: E402
 from utils.preprocess import CHIEF_COMPLAINTS  # noqa: E402
 from utils.report_generator import generate_handover_report  # noqa: E402
@@ -107,7 +106,15 @@ def load_model_artifacts():
     global model, scaler
 
     print("Loading triage model...")
-    ensure_model_artifacts()
+    missing = [
+        path
+        for path in (MODEL_DIR / "triage_model.pkl", MODEL_DIR / "scaler.pkl", MODEL_DIR / "feature_names.pkl")
+        if not path.exists()
+    ]
+    if missing:
+        from model.train_model import ensure_model_artifacts
+
+        ensure_model_artifacts()
     model = joblib.load(MODEL_DIR / "triage_model.pkl")
     scaler = joblib.load(MODEL_DIR / "scaler.pkl")
     print("Model loaded OK")
