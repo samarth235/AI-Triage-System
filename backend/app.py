@@ -164,6 +164,9 @@ def _require_fields(data, fields):
 
 
 def _prediction_payload(data):
+    if model is None or scaler is None:
+        load_model_artifacts()
+
     _require_fields(data, REQUIRED_TRIAGE_FIELDS)
     features = np.array(
         [[
