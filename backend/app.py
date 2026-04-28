@@ -763,8 +763,9 @@ def health():
 
 
 
-# Initialize model on startup
-load_model_artifacts()
+# Initialize model on startup in a separate thread to avoid Gunicorn timeouts
+import threading
+threading.Thread(target=load_model_artifacts, daemon=True).start()
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
