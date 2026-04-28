@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ai-triage-system-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT wsgi:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:////tmp/triage.db
+      - key: CORS_ORIGINS
+        value: https://ai-triage-system-for-er.web.app,https://ai-triage-system-for-er.firebaseapp.com
