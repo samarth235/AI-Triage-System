@@ -50,7 +50,8 @@ if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
     from sqlalchemy.pool import NullPool
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"poolclass": NullPool}
 
-cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",")]
+cors_origins_raw = os.getenv("CORS_ORIGINS", "*")
+cors_origins = cors_origins_raw if cors_origins_raw == "*" else [o.strip() for o in cors_origins_raw.split(",")]
 CORS(app, resources={r"/*": {"origins": cors_origins}})
 socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode="threading")
 initialize_database(app)
