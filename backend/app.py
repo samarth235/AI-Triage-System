@@ -406,6 +406,19 @@ def _check_retriage_needed():
     return alerts
 
 
+@app.route("/")
+def index():
+    return jsonify({
+        "status": "online",
+        "service": "AI Triage System API",
+        "endpoints": {
+            "health": "/api/health",
+            "triage": "/api/triage",
+            "queue": "/api/queue"
+        }
+    })
+
+
 @app.route("/api/triage", methods=["POST"])
 def triage_patient():
     try:
@@ -748,7 +761,10 @@ def health():
     )
 
 
+
+# Initialize model on startup
+load_model_artifacts()
+
 if __name__ == "__main__":
-    load_model_artifacts()
     port = int(os.getenv("PORT", "5000"))
     socketio.run(app, debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", host="0.0.0.0", port=port)
