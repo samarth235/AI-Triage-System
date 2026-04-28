@@ -54,7 +54,10 @@ cors_origins_raw = os.getenv("CORS_ORIGINS", "*")
 cors_origins = cors_origins_raw if cors_origins_raw == "*" else [o.strip() for o in cors_origins_raw.split(",")]
 CORS(app, resources={r"/*": {"origins": cors_origins}})
 socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode="threading")
-initialize_database(app)
+try:
+    initialize_database(app)
+except Exception as e:
+    print(f"Database initialization failed: {e}")
 
 URGENCY_CONFIG = {
     0: {
@@ -764,7 +767,10 @@ def health():
 
 
 # Initialize model on startup
-load_model_artifacts()
+try:
+    load_model_artifacts()
+except Exception as e:
+    print(f"Model loading failed: {e}")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
