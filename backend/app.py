@@ -25,7 +25,6 @@ from database import (  # noqa: E402
     get_shift_stats,
     initialize_database,
 )
-from model.train_model import ensure_model_artifacts  # noqa: E402
 from utils.nlp_parser import parse_complaint  # noqa: E402
 from utils.preprocess import CHIEF_COMPLAINTS  # noqa: E402
 from utils.report_generator import generate_handover_report  # noqa: E402
@@ -46,10 +45,19 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
-CORS(app, resources={r"/api/*": {"origins": cors_origins}})
-socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode="eventlet")
-initialize_database(app)
+# Use NullPool for SQLite to avoid eventlet threading/lock conflicts
+if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+    from sqlalchemy.pool import NullPool
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"poolclass": NullPool}
+
+cors_origins_raw = os.getenv("CORS_ORIGINS", "*")
+cors_origins = cors_origins_raw if cors_origins_raw == "*" else [o.strip() for o in cors_origins_raw.split(",")]
+CORS(app, resources={r"/*": {"origins": cors_origins}})
+socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode="threading")
+try:
+    initialize_database(app)
+except Exception as e:
+    print(f"Database initialization failed: {e}")
 
 URGENCY_CONFIG = {
     0: {
@@ -107,7 +115,15 @@ def load_model_artifacts():
     global model, scaler
 
     print("Loading triage model...")
-    ensure_model_artifacts()
+    missing = [
+        path
+        for path in (MODEL_DIR / "triage_model.pkl", MODEL_DIR / "scaler.pkl", MODEL_DIR / "feature_names.pkl")
+        if not path.exists()
+    ]
+    if missing:
+        from model.train_model import ensure_model_artifacts
+
+        ensure_model_artifacts()
     model = joblib.load(MODEL_DIR / "triage_model.pkl")
     scaler = joblib.load(MODEL_DIR / "scaler.pkl")
     print("Model loaded OK")
@@ -164,6 +180,9 @@ def _require_fields(data, fields):
 
 
 def _prediction_payload(data):
+    if model is None or scaler is None:
+        load_model_artifacts()
+
     _require_fields(data, REQUIRED_TRIAGE_FIELDS)
     features = np.array(
         [[
@@ -389,6 +408,19 @@ def _check_retriage_needed():
     if alerts:
         socketio.emit("retriage_alerts", alerts)
     return alerts
+
+
+@app.route("/")
+def index():
+    return jsonify({
+        "status": "online",
+        "service": "AI Triage System API",
+        "endpoints": {
+            "health": "/api/health",
+            "triage": "/api/triage",
+            "queue": "/api/queue"
+        }
+    })
 
 
 @app.route("/api/triage", methods=["POST"])
@@ -733,7 +765,13 @@ def health():
     )
 
 
-if __name__ == "__main__":
+
+# Initialize model on startup
+try:
     load_model_artifacts()
+except Exception as e:
+    print(f"Model loading failed: {e}")
+
+if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     socketio.run(app, debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", host="0.0.0.0", port=port)
