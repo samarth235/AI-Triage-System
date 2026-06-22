@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { ClipboardList, Download, FileText, Handshake } from "lucide-react";
+import { Check, CheckCircle2, ClipboardList, Download, FileText, Handshake } from "lucide-react";
 
 export default function ShiftHandover({ API, queue }) {
   const [form, setForm] = useState({
@@ -97,8 +97,8 @@ export default function ShiftHandover({ API, queue }) {
           </button>
 
           {generated && (
-            <div style={{ marginTop: 10, padding: "8px 11px", background: "var(--green-bg)", border: "1px solid var(--green-border)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "#86efac" }}>
-              ✓ Report downloaded successfully. Share with incoming nurse/doctor.
+            <div className="inline-flex items-center gap-2" style={{ marginTop: 10, padding: "8px 11px", background: "var(--green-bg)", border: "1px solid var(--green-border)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "var(--green)" }}>
+              <CheckCircle2 size={15} /> Report downloaded successfully. Share with incoming nurse or doctor.
             </div>
           )}
         </div>
@@ -189,7 +189,7 @@ export default function ShiftHandover({ API, queue }) {
               "Recommendations for incoming shift",
             ].map((item, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, fontSize: 12, color: "var(--text2)" }}>
-                <span style={{ color: "var(--green)", fontSize: 10 }}>✓</span>
+                <Check size={14} style={{ color: "var(--green)", flexShrink: 0 }} />
                 {item}
               </div>
             ))}

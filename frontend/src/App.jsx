@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, AlertTriangle, BedDouble, ClipboardList, Radio, Siren, Stethoscope, Truck } from "lucide-react";
+import { Activity, AlertTriangle, BedDouble, ClipboardList, Menu, ShieldPlus, Siren, Stethoscope, Truck, X } from "lucide-react";
 import PatientForm from "./components/PatientForm";
 import PatientQueue from "./components/PatientQueue";
 import DetailPanel from "./components/DetailPanel";
@@ -33,8 +33,17 @@ const TABS = [
   { id: "handover", label: "Handover", icon: Stethoscope },
 ];
 
-const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
+const PAGE_DESCRIPTIONS = {
+  queue: "Real-time overview of patients awaiting triage and treatment.",
+  ambulance: "Send pre-arrival clinical information to the emergency team.",
+  mass: "Coordinate rapid triage during a mass-casualty incident.",
+  beds: "Monitor occupancy and availability across hospital wards.",
+  audit: "Review triage decisions, overrides, and safety events.",
+  handover: "Prepare a complete clinical handover for the incoming shift.",
+};
+
+const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.04 } } };
+const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
 
 export default function App() {
   const [tab, setTab] = useState("queue");
@@ -45,6 +54,7 @@ export default function App() {
   const [ambulanceAlert, setAmbulanceAlert] = useState(null);
   const [beds, setBeds] = useState({});
   const [mciMode, setMciMode] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const selected = queue.find((patient) => patient.id === selectedId) || null;
   const trendPatient = queue.find((patient) => patient.id === trendPatientId) || null;
 
@@ -61,7 +71,7 @@ export default function App() {
       toast.error("Patient auto-upgraded due to deteriorating vitals", { duration: 6000 });
     });
     socket.on("retriage_alerts", (alerts) => {
-      alerts.forEach((a) => toast(`Re-assess: ${a.name} has waited ${a.waited_minutes}m (limit: ${a.limit}m)`, { duration: 5000 }));
+      alerts.forEach((alert) => toast(`Re-assess: ${alert.name} has waited ${alert.waited_minutes}m (limit: ${alert.limit}m)`, { duration: 5000 }));
     });
     socket.on("bed_update", setBeds);
 
@@ -78,10 +88,10 @@ export default function App() {
 
   const fetchQueue = async () => {
     try {
-      const r = await axios.get(`${API}/api/queue`);
-      if (r.data.success) {
-        setQueue(r.data.queue);
-        setStats(r.data.stats);
+      const response = await axios.get(`${API}/api/queue`);
+      if (response.data.success) {
+        setQueue(response.data.queue);
+        setStats(response.data.stats);
       }
     } catch {
       toast.error("Unable to load patient queue");
@@ -90,8 +100,8 @@ export default function App() {
 
   const fetchBeds = async () => {
     try {
-      const r = await axios.get(`${API}/api/beds`);
-      if (r.data.success) setBeds(r.data.beds);
+      const response = await axios.get(`${API}/api/beds`);
+      if (response.data.success) setBeds(response.data.beds);
     } catch {
       toast.error("Unable to load bed status");
     }
@@ -119,7 +129,7 @@ export default function App() {
   };
 
   const handlePatientAdded = (patient) => {
-    setQueue((prev) => [...prev, patient].sort((a, b) => a.urgency_level - b.urgency_level));
+    setQueue((previous) => [...previous, patient].sort((a, b) => a.urgency_level - b.urgency_level));
     setSelectedId(patient.id);
     toast.success(`Patient triaged: ${patient.urgency_label}`);
   };
@@ -129,95 +139,133 @@ export default function App() {
     if (trendPatientId && !queue.some((patient) => patient.id === trendPatientId)) setTrendPatientId(null);
   }, [queue, selectedId, trendPatientId]);
 
-  const accent = mciMode ? "#ef4444" : "#10b981";
+  const accent = mciMode ? "#dc2626" : "#2563eb";
+  const activeTab = TABS.find((entry) => entry.id === tab);
 
   return (
-    <div className={`min-h-screen ${mciMode ? "mci" : ""}`} style={{ "--accent": accent }}>
-      <Toaster position="top-right" toastOptions={{ style: { background: "#0f172a", color: "#f8fafc", border: "1px solid rgba(255,255,255,.12)" } }} />
+    <div className={`app-shell ${mciMode ? "mci" : ""}`} style={{ "--accent": accent }}>
+      <Toaster position="top-right" toastOptions={{ style: { background: "#ffffff", color: "#172033", border: "1px solid #dce2ea", boxShadow: "0 12px 30px rgba(15, 23, 42, .12)" } }} />
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-black/45 px-4 py-3 backdrop-blur-md md:px-6">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3">
-          <div className="mr-4 flex items-center gap-3">
-            <div className={`rounded-xl border border-white/10 p-2 ${mciMode ? "bg-red-500/20" : "bg-emerald-500/15 animate-alert-pulse"}`}>
-              <Radio strokeWidth={1.5} size={18} className={mciMode ? "text-red-300" : "text-emerald-300"} />
-            </div>
-            <div>
-              <div className="text-sm font-semibold tracking-wide">Crisis Response Command Center</div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">Hospitality Incident Operations Grid</div>
-            </div>
+      <button className="mobile-nav-trigger" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
+        <Menu size={20} />
+      </button>
+      {mobileNavOpen && <button className="nav-scrim" onClick={() => setMobileNavOpen(false)} aria-label="Close navigation" />}
+
+      <aside className={`app-sidebar ${mobileNavOpen ? "is-open" : ""}`}>
+        <div className="brand-block">
+          <div className="brand-mark"><ShieldPlus size={22} strokeWidth={1.8} /></div>
+          <div>
+            <div className="brand-title">Crisis Response</div>
+            <div className="brand-title">Command Center</div>
           </div>
-
-          <div className="flex flex-1 flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/30 p-1">
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.id;
-              return (
-                <button key={t.id} onClick={() => setTab(t.id)} className={`btn px-3 py-1.5 ${active ? "border-transparent bg-white/15 text-white" : "bg-transparent text-slate-300"}`}>
-                  <Icon strokeWidth={1.5} size={18} />
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <button onClick={() => setMciMode((v) => !v)} className={`btn ${mciMode ? "border-red-400/40 bg-red-500/20 text-red-200" : "border-emerald-500/30 bg-emerald-500/15 text-emerald-200"}`}>
-            <AlertTriangle strokeWidth={1.5} size={18} className={mciMode ? "" : "animate-alert-pulse"} />
-            {mciMode ? "MCI MODE ACTIVE" : "Enable MCI Mode"}
-          </button>
+          <button className="sidebar-close" onClick={() => setMobileNavOpen(false)} aria-label="Close navigation"><X size={18} /></button>
         </div>
-      </header>
+        <div className="brand-subtitle">Hospital incident operations</div>
 
-      <main className="mx-auto w-full max-w-[1600px] p-4 md:p-6">
-        {ambulanceAlert && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl border border-red-500/50 bg-red-500/15 px-4 py-3 text-sm text-red-100">
-            <Truck strokeWidth={1.5} size={18} />
-            <strong>INCOMING:</strong> {ambulanceAlert.patient_name} · Age {ambulanceAlert.age} · {ambulanceAlert.urgency_label} · ETA {ambulanceAlert.eta_minutes} min
-            <button className="btn ml-auto" onClick={() => setAmbulanceAlert(null)}>Dismiss</button>
+        <nav className="sidebar-nav" aria-label="Primary navigation">
+          {TABS.map((entry) => {
+            const Icon = entry.icon;
+            const active = tab === entry.id;
+            return (
+              <button
+                key={entry.id}
+                onClick={() => { setTab(entry.id); setMobileNavOpen(false); }}
+                className={`sidebar-nav-item ${active ? "active" : ""}`}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon strokeWidth={1.7} size={19} />
+                <span>{entry.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <button onClick={() => setMciMode((current) => !current)} className={`mci-control ${mciMode ? "active" : ""}`}>
+          <AlertTriangle strokeWidth={1.7} size={18} />
+          <span>{mciMode ? "MCI Mode Active" : "Enable MCI Mode"}</span>
+        </button>
+
+        <div className="sidebar-footer">
+          <div className="user-avatar">ER</div>
+          <div>
+            <div className="user-name">Emergency Team</div>
+            <div className="user-role">Current shift</div>
           </div>
-        )}
+        </div>
+      </aside>
 
-        {tab === "queue" && (
-          <motion.div variants={container} initial="hidden" animate="show" className="space-y-4">
-            <motion.div variants={item} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {[
-                { label: "Immediate", value: stats.immediate || 0, sub: "See now", color: "text-red-400" },
-                { label: "Urgent", value: stats.urgent || 0, sub: "Within 10 min", color: "text-orange-300" },
-                { label: "Less Urgent", value: stats.less_urgent || 0, sub: "Within 60 min", color: "text-yellow-300" },
-                { label: "Non-Urgent", value: stats.non_urgent || 0, sub: "Within 120 min", color: "text-emerald-300" },
-                { label: "Total Queue", value: stats.total || 0, sub: "Active patients", color: mciMode ? "text-red-300" : "text-emerald-300" },
-              ].map((s) => (
-                <div key={s.label} className="glass-card p-4">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{s.label}</div>
-                  <div className={`mt-1 font-mono text-3xl font-semibold ${s.color}`}>{s.value}</div>
-                  <div className="mt-1 text-xs text-zinc-500">{s.sub}</div>
-                </div>
-              ))}
+      <section className="app-content">
+        <header className="page-header">
+          <div>
+            <div className="page-eyebrow">Emergency operations</div>
+            <h1>{activeTab?.label || "Dashboard"}</h1>
+            <p>{PAGE_DESCRIPTIONS[tab]}</p>
+          </div>
+          <div className="shift-status">
+            <span className="status-dot" />
+            <div>
+              <strong>Current shift</strong>
+              <span>Day shift · Live</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="page-main">
+          {ambulanceAlert && (
+            <div className="incoming-alert">
+              <Truck strokeWidth={1.5} size={18} />
+              <strong>Incoming:</strong> {ambulanceAlert.patient_name} · Age {ambulanceAlert.age} · {ambulanceAlert.urgency_label} · ETA {ambulanceAlert.eta_minutes} min
+              <button className="btn ml-auto" onClick={() => setAmbulanceAlert(null)}>Dismiss</button>
+            </div>
+          )}
+
+          {tab === "queue" && (
+            <motion.div variants={container} initial="hidden" animate="show" className="queue-page">
+              <motion.div variants={item} className="urgency-strip">
+                {[
+                  { label: "Immediate", value: stats.immediate || 0, sub: "See now", key: "immediate" },
+                  { label: "Urgent", value: stats.urgent || 0, sub: "Within 10 min", key: "urgent" },
+                  { label: "Less Urgent", value: stats.less_urgent || 0, sub: "Within 60 min", key: "less-urgent" },
+                  { label: "Non-Urgent", value: stats.non_urgent || 0, sub: "Within 120 min", key: "non-urgent" },
+                  { label: "Total Queue", value: stats.total || 0, sub: "Active patients", key: "total" },
+                ].map((stat) => (
+                  <div key={stat.label} className={`urgency-stat urgency-${stat.key}`}>
+                    <div className="urgency-label">{stat.label}</div>
+                    <div className="urgency-value">{stat.value}</div>
+                    <div className="urgency-sub">{stat.sub}</div>
+                  </div>
+                ))}
+              </motion.div>
+
+              <motion.div variants={item} className="queue-workspace">
+                <PatientForm API={API} onPatientAdded={handlePatientAdded} />
+                <PatientQueue queue={queue} selected={selected} onSelect={(patient) => setSelectedId(patient.id)} />
+                {selected ? (
+                  <DetailPanel patient={selected} onDischarge={handleDischarge} onOverride={handleOverride} onViewTrend={() => setTrendPatientId(selected.id)} API={API} />
+                ) : (
+                  <div className="empty-detail">
+                    <ShieldPlus size={28} strokeWidth={1.4} />
+                    <strong>No patient selected</strong>
+                    <span>Select a patient from the queue to review clinical details.</span>
+                  </div>
+                )}
+              </motion.div>
             </motion.div>
+          )}
 
-            <motion.div variants={item} className="grid gap-4 xl:grid-cols-[360px_1fr_360px]">
-              <PatientForm API={API} onPatientAdded={handlePatientAdded} />
-              <PatientQueue queue={queue} selected={selected} onSelect={(patient) => setSelectedId(patient.id)} onDischarge={handleDischarge} />
-              {selected ? (
-                <DetailPanel patient={selected} onDischarge={handleDischarge} onOverride={handleOverride} onViewTrend={() => setTrendPatientId(selected.id)} API={API} />
-              ) : (
-                <div className="glass-card p-8 text-center text-sm text-zinc-500">Select a patient from the queue to view details.</div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-
-        {tab === "ambulance" && <AmbulancePreTriage API={API} />}
-        {tab === "mass" && <MassCasualty API={API} onDone={fetchQueue} />}
-        {tab === "beds" && <BedManagement beds={beds} API={API} />}
-        {tab === "audit" && <AuditLog API={API} />}
-        {tab === "handover" && <ShiftHandover API={API} queue={queue} />}
-      </main>
+          {tab === "ambulance" && <AmbulancePreTriage API={API} />}
+          {tab === "mass" && <MassCasualty API={API} onDone={fetchQueue} />}
+          {tab === "beds" && <BedManagement beds={beds} API={API} />}
+          {tab === "audit" && <AuditLog API={API} />}
+          {tab === "handover" && <ShiftHandover API={API} queue={queue} />}
+        </main>
+      </section>
 
       <AnimatePresence>
         {trendPatient && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setTrendPatientId(null)}>
-            <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }} className="glass-card relative max-h-[85vh] w-full max-w-2xl overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-              <button type="button" className="btn absolute right-4 top-4 px-2 py-1" aria-label="Close vitals trend" onClick={() => setTrendPatientId(null)}>x</button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-backdrop" onClick={() => setTrendPatientId(null)}>
+            <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }} className="modal-panel" onClick={(event) => event.stopPropagation()}>
+              <button type="button" className="modal-close" aria-label="Close vitals trend" onClick={() => setTrendPatientId(null)}><X size={18} /></button>
               <div className="mb-4 text-lg font-semibold">Vitals Trend - {trendPatient.name}</div>
               <VitalsTrend patient={trendPatient} API={API} />
             </motion.div>

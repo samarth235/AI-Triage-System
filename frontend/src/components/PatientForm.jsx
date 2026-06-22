@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import { ClipboardPlus, Sparkles } from "lucide-react";
+import { ClipboardPlus, Sparkles, TriangleAlert } from "lucide-react";
 
 const COMPLAINTS = [
   "Chest Pain","Breathlessness","Trauma / Injury","Fever",
@@ -85,7 +85,11 @@ export default function PatientForm({ API, onPatientAdded }) {
             <div className="nlp-suggestion inline-flex items-center gap-2">
               <Sparkles size={18} strokeWidth={1.5} />
               Detected: <strong>{nlpResult.category_label}</strong> ({nlpResult.confidence}% confidence)
-              {nlpResult.urgency_hint === "high" && <span style={{ color: "#fca5a5", marginLeft: 8 }}>⚠ HIGH URGENCY LANGUAGE</span>}
+              {nlpResult.urgency_hint === "high" && (
+                <span className="inline-flex items-center gap-1" style={{ color: "var(--red)", marginLeft: 8 }}>
+                  <TriangleAlert size={13} /> High urgency language
+                </span>
+              )}
             </div>
           )}
         </div>
