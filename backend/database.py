@@ -35,6 +35,7 @@ class Patient(db.Model):
     arrival_mode = db.Column(db.Integer, nullable=False)
     arrival_timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
     status = db.Column(db.String(20), nullable=False, default="waiting", index=True)
+    bed_type = db.Column(db.String(30), nullable=True)
     overridden = db.Column(db.Boolean, nullable=False, default=False)
     override_reason = db.Column(db.Text)
     source = db.Column(db.String(30), nullable=False, default="er")

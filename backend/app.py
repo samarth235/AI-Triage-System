@@ -93,6 +93,14 @@ RESOURCES = {
     3: ["Waiting Area", "Junior Doctor"],
 }
 
+# Maps urgency level to the bed ward that should be occupied/freed
+URGENCY_TO_BED_TYPE = {
+    0: "icu",
+    1: "emergency",
+    2: "general",
+    3: "observation",
+}
+
 REQUIRED_TRIAGE_FIELDS = [
     "age",
     "heart_rate",
@@ -306,6 +314,7 @@ def _serialize_patient(patient):
         "arrival_time": patient.arrival_timestamp.strftime("%H:%M:%S"),
         "arrival_timestamp": patient.arrival_timestamp.isoformat() + "Z",
         "status": patient.status,
+        "bed_type": patient.bed_type,
         "overridden": patient.overridden,
         "override_reason": patient.override_reason,
         "source": patient.source,
@@ -361,6 +370,36 @@ def _broadcast_queue_update():
 
 def _broadcast_beds():
     socketio.emit("bed_update", get_bed_snapshot())
+
+
+def _occupy_bed(urgency_level):
+    """Occupy one bed of the appropriate type for the given urgency level."""
+    bed_type = URGENCY_TO_BED_TYPE.get(urgency_level)
+    if bed_type is None:
+        return bed_type
+    bed = db.session.get(BedState, bed_type)
+    if bed and bed.occupied < bed.total:
+        bed.occupied += 1
+    elif bed:
+        # All beds of this type full — try a fallback cascade
+        for fallback in ["emergency", "general", "observation", "icu"]:
+            if fallback == bed_type:
+                continue
+            fb_bed = db.session.get(BedState, fallback)
+            if fb_bed and fb_bed.occupied < fb_bed.total:
+                fb_bed.occupied += 1
+                bed_type = fallback
+                break
+    return bed_type
+
+
+def _free_bed(bed_type):
+    """Free one bed of the given type. No-op if bed_type is None."""
+    if not bed_type:
+        return
+    bed = db.session.get(BedState, bed_type)
+    if bed and bed.occupied > 0:
+        bed.occupied -= 1
 
 
 def _analyze_trend(patient_id):
@@ -434,17 +473,23 @@ def triage_patient():
         patient = _create_patient_record(data, prediction, sepsis)
         db.session.add(patient)
         db.session.flush()
+
+        # Occupy a bed based on the patient's urgency level
+        assigned_bed_type = _occupy_bed(patient.urgency_level)
+        patient.bed_type = assigned_bed_type
+
         db.session.add(_create_vitals_reading(patient, data))
         _log_audit(
             patient,
             action="triage",
             confidence=prediction["confidence"],
-            details={"source": patient.source},
+            details={"source": patient.source, "bed_type": assigned_bed_type},
         )
         db.session.commit()
 
         payload = _serialize_patient(patient)
         _broadcast_queue_update()
+        _broadcast_beds()
         _check_retriage_needed()
 
         return jsonify({"success": True, "patient": payload})
@@ -531,6 +576,8 @@ def update_vitals():
             old_level = patient.urgency_level
             patient.urgency_level = max(0, patient.urgency_level - 1)
             upgraded = True
+            _free_bed(patient.bed_type)
+            patient.bed_type = _occupy_bed(patient.urgency_level)
             _log_audit(
                 patient,
                 action="auto_upgrade",
@@ -538,11 +585,14 @@ def update_vitals():
                     f"Auto-upgraded from {URGENCY_CONFIG[old_level]['label']} due to "
                     f"{', '.join(trend['signals'])}"
                 ),
+                details={"bed_type": patient.bed_type},
             )
             socketio.emit("patient_upgraded", {"patient_id": patient.id, "new_urgency": patient.urgency_level})
 
         db.session.commit()
         _broadcast_queue_update()
+        if upgraded:
+            _broadcast_beds()
 
         return jsonify({"success": True, "trend": trend, "upgraded": upgraded})
     except Exception as error:
@@ -601,12 +651,14 @@ def mass_casualty():
             patient = _create_patient_record(data | {"source": "mass_casualty"}, prediction, sepsis)
             db.session.add(patient)
             db.session.flush()
+            assigned_bed_type = _occupy_bed(patient.urgency_level)
+            patient.bed_type = assigned_bed_type
             db.session.add(_create_vitals_reading(patient, data))
             _log_audit(
                 patient,
                 action="triage",
                 confidence=prediction["confidence"],
-                details={"source": "mass_casualty"},
+                details={"source": "mass_casualty", "bed_type": assigned_bed_type},
             )
             results.append(patient)
 
@@ -620,6 +672,7 @@ def mass_casualty():
 
         db.session.commit()
         _broadcast_queue_update()
+        _broadcast_beds()
 
         serialized = [_serialize_patient(patient) for patient in sorted(results, key=lambda item: item.urgency_level)]
         return jsonify(
@@ -663,13 +716,17 @@ def override_triage():
             return jsonify({"success": False, "error": "Patient not found"}), 404
 
         new_level = int(data["new_urgency_level"])
+        if patient.urgency_level != new_level:
+            _free_bed(patient.bed_type)
+            patient.bed_type = _occupy_bed(new_level)
         patient.urgency_level = new_level
         patient.overridden = True
         patient.override_reason = data.get("reason", "Clinical judgment")
-        _log_audit(patient, action="override", note=patient.override_reason)
+        _log_audit(patient, action="override", note=patient.override_reason, details={"bed_type": patient.bed_type})
         db.session.commit()
 
         _broadcast_queue_update()
+        _broadcast_beds()
         return jsonify({"success": True, "patient": _serialize_patient(patient)})
     except Exception as error:
         db.session.rollback()
@@ -684,10 +741,14 @@ def discharge_patient():
         if not patient or patient.status != "waiting":
             return jsonify({"success": False, "error": "Patient not found"}), 404
 
+        # Free the bed that was occupied when this patient was registered
+        _free_bed(patient.bed_type)
+
         patient.status = "discharged"
         patient.discharged_at = datetime.utcnow()
         db.session.commit()
         _broadcast_queue_update()
+        _broadcast_beds()
         return jsonify({"success": True})
     except Exception as error:
         db.session.rollback()
