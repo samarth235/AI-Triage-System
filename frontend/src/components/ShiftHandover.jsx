@@ -6,7 +6,7 @@ import { ClipboardList, Download, FileText, Handshake } from "lucide-react";
 export default function ShiftHandover({ API, queue }) {
   const [form, setForm] = useState({
     nurse: "",
-    period: "Day Shift (08:00–20:00)",
+    period: "Day Shift (08:00-20:00)",
     notes: "",
   });
   const [loading, setLoading] = useState(false);
@@ -27,8 +27,11 @@ export default function ShiftHandover({ API, queue }) {
       window.URL.revokeObjectURL(url);
       setGenerated(true);
       toast.success("Shift handover report downloaded!");
-    } catch {
-      toast.error("Backend not connected — ensure app.py is running");
+    } catch (err) {
+      console.error("Handover error:", err);
+      toast.error(err.response?.status === 500 
+        ? "Server error while generating PDF. Check logs." 
+        : "Backend connection failed. Ensure server is running at " + API);
     }
     setLoading(false);
   };
@@ -64,10 +67,10 @@ export default function ShiftHandover({ API, queue }) {
           <div className="form-group">
             <label className="form-label">Shift Period</label>
             <select className="form-select" value={form.period} onChange={e => set("period", e.target.value)}>
-              <option>Day Shift (08:00–20:00)</option>
-              <option>Night Shift (20:00–08:00)</option>
-              <option>Morning Shift (06:00–14:00)</option>
-              <option>Evening Shift (14:00–22:00)</option>
+              <option>Day Shift (08:00-20:00)</option>
+              <option>Night Shift (20:00-08:00)</option>
+              <option>Morning Shift (06:00-14:00)</option>
+              <option>Evening Shift (14:00-22:00)</option>
               <option>Custom Period</option>
             </select>
           </div>

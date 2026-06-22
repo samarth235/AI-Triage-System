@@ -286,6 +286,7 @@ def _serialize_patient(patient):
         "urgency_color": urgency_config["color"],
         "urgency_description": urgency_config["description"],
         "max_wait": urgency_config["max_wait"],
+        "max_wait_minutes": {0: 0, 1: 10, 2: 60, 3: 120}.get(patient.urgency_level, 120),
         "confidence": patient.confidence,
         "uncertain": patient.uncertain,
         "resources_needed": patient.resources_needed or [],
@@ -303,7 +304,7 @@ def _serialize_patient(patient):
             "pain_score": patient.pain_score,
         },
         "arrival_time": patient.arrival_timestamp.strftime("%H:%M:%S"),
-        "arrival_timestamp": patient.arrival_timestamp.isoformat(),
+        "arrival_timestamp": patient.arrival_timestamp.isoformat() + "Z",
         "status": patient.status,
         "overridden": patient.overridden,
         "override_reason": patient.override_reason,
@@ -774,4 +775,4 @@ except Exception as e:
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
-    socketio.run(app, debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", host="0.0.0.0", port=port)
+    socketio.run(app, debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)

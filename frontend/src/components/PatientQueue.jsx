@@ -1,4 +1,5 @@
-import { Ambulance, BrainCircuit, Clock3, Thermometer, TriangleAlert, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Ambulance, BrainCircuit, Clock3, Thermometer, Timer, TriangleAlert, UserRound } from "lucide-react";
 
 const urgencyStyles = [
   "border-red-400/40 bg-red-500/10",
@@ -6,6 +7,103 @@ const urgencyStyles = [
   "border-yellow-400/40 bg-yellow-500/10",
   "border-emerald-400/40 bg-emerald-500/10",
 ];
+
+/** Returns { remaining, fraction, overdue } each second */
+function useCountdown(arrivalTimestamp, maxWaitMinutes) {
+  const deadline = new Date(arrivalTimestamp).getTime() + maxWaitMinutes * 60 * 1000;
+
+  const calc = () => {
+    const now = Date.now();
+    const diff = deadline - now;          // ms remaining
+    const total = maxWaitMinutes * 60 * 1000;
+    return {
+      remaining: diff,
+      fraction: Math.max(0, diff / total), // 1 → 0
+      overdue: diff < 0,
+    };
+  };
+
+  const [state, setState] = useState(calc);
+
+  useEffect(() => {
+    // Immediate patients (maxWaitMinutes === 0) are always critical
+    if (maxWaitMinutes === 0) {
+      setState({ remaining: 0, fraction: 0, overdue: true });
+      return;
+    }
+    setState(calc());
+    const id = setInterval(() => setState(calc()), 1000);
+    return () => clearInterval(id);
+  }, [arrivalTimestamp, maxWaitMinutes]); // eslint-disable-line
+
+  return state;
+}
+
+function fmtTime(ms) {
+  if (ms <= 0) return "00:00";
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function CountdownClock({ arrivalTimestamp, maxWaitMinutes }) {
+  const { remaining, fraction, overdue } = useCountdown(arrivalTimestamp, maxWaitMinutes);
+
+  // Colour: green (safe) → yellow (caution) → red (critical)
+  let barColor, textColor, label;
+  if (maxWaitMinutes === 0) {
+    barColor = "bg-red-500";
+    textColor = "text-red-300";
+    label = "IMMEDIATE";
+  } else if (overdue) {
+    barColor = "bg-red-500 animate-pulse";
+    textColor = "text-red-300 animate-pulse";
+    label = "OVERDUE";
+  } else if (fraction > 0.5) {
+    barColor = "bg-emerald-500";
+    textColor = "text-emerald-300";
+    label = fmtTime(remaining);
+  } else if (fraction > 0.2) {
+    barColor = "bg-yellow-400";
+    textColor = "text-yellow-300";
+    label = fmtTime(remaining);
+  } else {
+    barColor = "bg-red-500";
+    textColor = "text-red-300";
+    label = fmtTime(remaining);
+  }
+
+  const pct = Math.round(fraction * 100);
+
+  return (
+    <div className="mt-2 space-y-1">
+      {/* progress bar */}
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-all duration-1000 ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {/* label */}
+      <div className={`flex items-center gap-1 font-mono text-[11px] ${textColor}`}>
+        <Timer size={12} strokeWidth={2} />
+        {maxWaitMinutes === 0 ? (
+          <span className="font-semibold tracking-wide">IMMEDIATE — See Now</span>
+        ) : overdue ? (
+          <span className="font-semibold tracking-wide">OVERDUE — Needs Attention</span>
+        ) : (
+          <span>
+            <span className="font-semibold">{label}</span>
+            <span className="ml-1 text-zinc-500">until critical</span>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function PatientQueue({ queue, selected, onSelect }) {
   if (!queue.length) {
@@ -57,6 +155,12 @@ export default function PatientQueue({ queue, selected, onSelect }) {
                 {p.source === "mass_casualty" && <span className="rounded-full border border-red-400/35 bg-red-500/15 px-2 py-1 text-red-200">MCI</span>}
                 {p.overridden && <span className="inline-flex items-center gap-1 rounded-full border border-yellow-400/35 bg-yellow-500/15 px-2 py-1 text-yellow-200"><Thermometer size={18} strokeWidth={1.5} />OVERRIDDEN</span>}
               </div>
+
+              {/* ── Live Countdown Clock ── */}
+              <CountdownClock
+                arrivalTimestamp={p.arrival_timestamp}
+                maxWaitMinutes={p.max_wait_minutes ?? {0:0,1:10,2:60,3:120}[p.urgency_level] ?? 120}
+              />
             </div>
           );
         })}

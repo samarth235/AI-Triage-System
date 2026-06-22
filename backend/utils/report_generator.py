@@ -46,17 +46,31 @@ class HandoverReport(FPDF):
         self.cell(0, 8, f"  {title}", new_x="LMARGIN", new_y="NEXT", fill=True)
         self.ln(2)
 
+    def _clean_text(self, text):
+        """Replaces common non-latin-1 characters that cause FPDF to crash"""
+        if not isinstance(text, str):
+            return str(text)
+        return (
+            text.replace("–", "-")  # en-dash
+            .replace("—", "-")      # em-dash
+            .replace("’", "'")      # smart quotes
+            .replace("‘", "'")
+            .replace("“", '"')
+            .replace("”", '"')
+        )
+
     def key_value(self, key, value, color=None):
         self.set_font("Helvetica", "B", 9)
         self.set_text_color(80, 80, 80)
-        self.cell(55, 6, key + ":", new_x="RIGHT", new_y="TOP")
+        self.write(6, self._clean_text(key) + ": ")
         self.set_font("Helvetica", "", 9)
         if color:
             self.set_text_color(*color)
         else:
             self.set_text_color(0, 0, 0)
-        self.multi_cell(0, 6, str(value))
+        self.write(6, self._clean_text(value))
         self.set_text_color(0, 0, 0)
+        self.ln(6)
 
 
 def generate_handover_report(queue, stats, shift_info):
@@ -94,7 +108,7 @@ def generate_handover_report(queue, stats, shift_info):
             pdf.cell(
                 0,
                 6,
-                f"[{labels.get(urgency_level, 'UNKNOWN')}] {patient.get('name', 'Unknown')} - ID: {patient.get('id', '')}",
+                pdf._clean_text(f"[{labels.get(urgency_level, 'UNKNOWN')}] {patient.get('name', 'Unknown')} - ID: {patient.get('id', '')}"),
                 new_x="LMARGIN",
                 new_y="NEXT",
             )
@@ -103,7 +117,7 @@ def generate_handover_report(queue, stats, shift_info):
             pdf.cell(
                 0,
                 5,
-                (
+                pdf._clean_text(
                     f"  Age: {patient.get('age', '?')} | Complaint: {patient.get('chief_complaint', '?')} | "
                     f"Arrived: {patient.get('arrival_time', '?')} | Confidence: {patient.get('confidence', '?')}%"
                 ),
@@ -125,7 +139,7 @@ def generate_handover_report(queue, stats, shift_info):
                 pdf.cell(
                     0,
                     5,
-                    f"  SEPSIS FLAG ACTIVE - {patient.get('sepsis', {}).get('message', '')}",
+                    pdf._clean_text(f"  SEPSIS FLAG ACTIVE - {patient.get('sepsis', {}).get('message', '')}"),
                     new_x="LMARGIN",
                     new_y="NEXT",
                 )
@@ -135,7 +149,7 @@ def generate_handover_report(queue, stats, shift_info):
                 pdf.cell(
                     0,
                     5,
-                    f"  AI override - {patient.get('override_reason', 'No reason given')}",
+                    pdf._clean_text(f"  AI override - {patient.get('override_reason', 'No reason given')}"),
                     new_x="LMARGIN",
                     new_y="NEXT",
                 )
